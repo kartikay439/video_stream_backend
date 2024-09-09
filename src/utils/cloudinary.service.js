@@ -29,5 +29,5 @@ const uploadOnCLoudinary = async (localfilePath)=>{
    }
 }
 
-export {uploadOnCLoudinary }
+export {uploadOnCLoudinary}
 
