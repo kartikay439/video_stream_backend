@@ -227,7 +227,110 @@ const refreshAcessToken = asyncHandler(
         throw new ApiError(401,error?.message || "Invalid refresh token");
        }
 
+     
+
     }
 )
 
-export {registerUser,loginUser,logOutUser,refreshAcessToken}
+const changeCurrentPassword = asyncHandler(
+    async (req,res)=>{
+        const {oldPassword,newPassword} = req.body
+
+        const user = await User.findById(req.user?._id);
+        const isPasswordCorrect =await user.isPasswordCorrect(oldPassword)
+
+        if (!isPasswordCorrect) {
+            new ApiError(404,"Old password not matched")
+        }
+user.password=newPassword;
+await user.save({validateBeforeSave:false});
+
+return res.status(200).json(
+    ApiResponse(200,{},"Password changed successfully")
+)
+
+    }
+);
+
+const getCurrentUser = asyncHandler(
+    async (req,res)=>{
+        const user = req.user;
+        if (!user) {
+            throw new ApiError(401,"Please signIn First");
+        }
+        return res.status(200).json(
+            new ApiResponse(200,user,"You are logged In")
+        )
+    }
+)
+
+const updateAccountDeteails  = asyncHandler(
+    async (req,res)=>{
+const {fullname,email} = req.body
+
+if(!fullname || !email){
+    throw new ApiError(400,"All fields are required");
+}
+    const user = User.findByIdAndUpdate(req.user?._id,
+        {
+            $set:{
+                fullname,email
+            }
+        },
+        {new:true}
+    ).select("-password")
+
+    return res.status(200)
+    .json(
+        new ApiResponse(200,user,"Account detail updated successfully")
+    )
+
+
+    }
+)
+
+const avatarUpdate = asyncHandler(
+    async(req,res)=>{
+        const user = req.user;
+        if (!user) {
+            throw new ApiError(400,"You are Required to login first")
+        }
+
+        avatarLocalPath = req.files?.path;
+
+        if(!avatarLocalPath){
+            throw new ApiError(400,"Avatar file is missing");
+        }
+
+        const avatar = await uploadOnCLoudinary(avatarLocalPath);
+
+        if(!avatar.url){
+            throw new ApiError(400,"Unable to upload on cloud");
+        }
+
+        // const user_db = User.findById(user._id);
+        // user_db.avatar = avatar.url;
+        // user_db.save()
+        await User.findByIdAndUpdate(
+            req.user?._id,
+            {
+                $set:{
+                    avatar:avatar.url
+                }
+            },
+                {
+                    new:true
+                }
+            
+        ).select("-passeord");
+        return res.status(200).json(
+            new ApiResponse(200,{},"File Updates : Avatar")
+        )
+    }
+)
+
+
+///  MAKE AT YOUR OWN CONTROLLER TO UPDATE COVER IMAGE FILE
+
+
+export {registerUser,loginUser,logOutUser,refreshAcessToken,changeCurrentPassword,getCurrentUser,updateAccountDeteails,avatarUpdate}
